@@ -1,11 +1,14 @@
 import json
 from pathlib import Path
 
+import jsonschema
+import yaml
+
 schema = {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "title": "Braidpipe Playbook",
     "type": "object",
-    "required": ["version", "source", "destination"],
+    "required": ["version"],
     "properties": {
         "version": {
             "type": "string",
@@ -17,32 +20,75 @@ schema = {
             "description": "Human-readable name for this braid"
         },
         "source": {
-            "type": "object",
-            "properties": {
-                "type": {"type": "string", "enum": ["generator", "stdin", "http"]},
-                "config": {"type": "object"}  # Will be refined per type
-            },
-            "required": ["type"]
+            "$ref": "#/$defs/connectorConfig",
+            "description": "Single source (shorthand for sources with one entry)"
         },
-        "transform": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "type": {"type": "string", "enum": ["filter", "rename", "select"]},
-                    "config": {"type": "object"}
-                }
-            }
+        "sources": {
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/$defs/connectorConfig"
+            },
+            "description": "Named sources. Keys become context names."
         },
         "destination": {
+            "$ref": "#/$defs/connectorConfig",
+            "description": "Single destination (shorthand for destinations with one entry)"
+        },
+        "destinations": {
             "type": "object",
-            "properties": {
-                "type": {"type": "string", "enum": ["stdout"]},
-                "config": {"type": "object"}
+            "additionalProperties": {
+                "$ref": "#/$defs/connectorConfig"
             },
-            "required": ["type"]
+            "description": "Named destinations. Keys become context names."
+        },
+    },
+    "allOf": [
+        {
+            "anyOf": [
+                { "required": ["source"] },
+                { "required": ["sources"] }
+            ]
+        },
+        {
+            "anyOf": [
+                { "required": ["destination"] },
+                { "required": ["destinations"] }
+            ]
+        }
+    ],
+    "$defs": {
+        "connectorConfig": {
+            "type": "object",
+            "required": ["connector"],
+            "properties": {
+                "connector": {
+                    "type": "string",
+                    "description": "Extension connector identifier",
+                    "enum": ["generator", "stdin", "stdout"]
+                },
+                "context": {
+                    "type": "string",
+                    "description": "Output context name (defaults to 'source' or 'destination' in shorthand mode)"
+                },
+                "config": {
+                    "type": "object",
+                    "description": "Extension-specific configuration"
+                }
+            }
         }
     }
 }
 
 Path("schema/playbook_v1.json").write_text(json.dumps(schema, indent=2))
+
+
+def test_example_yaml_is_valid():
+    with open("examples/hello.yaml") as f:
+        manifest = yaml.safe_load(f.read())
+    with open("schema/playbook_v1.json") as f:
+        schema = yaml.safe_load(f.read())
+    jsonschema.validate(manifest, schema)
+    print("I validated examples/hello.yaml against the generated schema at schema/playbook_v1.json")
+
+
+test_example_yaml_is_valid()

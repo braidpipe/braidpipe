@@ -1,0 +1,11 @@
+version: "1"
+name: hello_braid
+
+source:
+  connector: generator
+  config:
+    count: 100
+    prefix: "customer"
+
+destination:
+  connector: stdout

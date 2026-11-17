@@ -3,9 +3,7 @@
   "title": "Braidpipe Playbook",
   "type": "object",
   "required": [
-    "version",
-    "source",
-    "destination"
+    "version"
   ],
   "properties": {
     "version": {
@@ -20,59 +18,83 @@
       "description": "Human-readable name for this braid"
     },
     "source": {
+      "$ref": "#/$defs/connectorConfig",
+      "description": "Single source (shorthand for sources with one entry)"
+    },
+    "sources": {
       "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/connectorConfig"
+      },
+      "description": "Named sources. Keys become context names."
+    },
+    "destination": {
+      "$ref": "#/$defs/connectorConfig",
+      "description": "Single destination (shorthand for destinations with one entry)"
+    },
+    "destinations": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/connectorConfig"
+      },
+      "description": "Named destinations. Keys become context names."
+    }
+  },
+  "allOf": [
+    {
+      "anyOf": [
+        {
+          "required": [
+            "source"
+          ]
+        },
+        {
+          "required": [
+            "sources"
+          ]
+        }
+      ]
+    },
+    {
+      "anyOf": [
+        {
+          "required": [
+            "destination"
+          ]
+        },
+        {
+          "required": [
+            "destinations"
+          ]
+        }
+      ]
+    }
+  ],
+  "$defs": {
+    "connectorConfig": {
+      "type": "object",
+      "required": [
+        "connector"
+      ],
       "properties": {
-        "type": {
+        "connector": {
           "type": "string",
+          "description": "Extension connector identifier",
           "enum": [
             "generator",
             "stdin",
-            "http"
-          ]
-        },
-        "config": {
-          "type": "object"
-        }
-      },
-      "required": [
-        "type"
-      ]
-    },
-    "transform": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": [
-              "filter",
-              "rename",
-              "select"
-            ]
-          },
-          "config": {
-            "type": "object"
-          }
-        }
-      }
-    },
-    "destination": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": [
             "stdout"
           ]
         },
+        "context": {
+          "type": "string",
+          "description": "Output context name (defaults to 'source' or 'destination' in shorthand mode)"
+        },
         "config": {
-          "type": "object"
+          "type": "object",
+          "description": "Extension-specific configuration"
         }
-      },
-      "required": [
-        "type"
-      ]
+      }
     }
   }
 }
